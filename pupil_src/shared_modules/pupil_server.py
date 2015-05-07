@@ -1,3 +1,4 @@
+#coding: utf-8
 '''
 (*)~----------------------------------------------------------------------------------
  Pupil - eye tracking platform
@@ -14,12 +15,22 @@ import numpy as np
 from pyglui import ui
 import zmq
 
+# for web socket
+import time
+import tornado.ioloop
+import tornado.web
+import tornado.websocket
+from tornado.ioloop import PeriodicCallback
+import threading
+
+from tornado.options import define, options, parse_command_line
+
 
 
 import logging
 logger = logging.getLogger(__name__)
 
-
+web_sockets = []
 
 class Pupil_Server(Plugin):
     """pupil server plugin"""
@@ -30,6 +41,7 @@ class Pupil_Server(Plugin):
         self.socket = self.context.socket(zmq.PUB)
         self.address = ''
         self.set_server(address)
+        self.set_websocket_server()
         self.menu = None
         self.menu_conf = menu_conf
 
@@ -80,6 +92,8 @@ class Pupil_Server(Plugin):
                 if key not in self.exclude_list:
                     msg +=key+":"+str(value)+'\n'
             self.socket.send( msg )
+            for s in web_sockets:
+                s.send_message( msg )
 
         for g in events.get('gaze',[]):
             msg = "Gaze\n"
@@ -87,6 +101,8 @@ class Pupil_Server(Plugin):
                 if key not in self.exclude_list:
                     msg +=key+":"+str(value)+'\n'
             self.socket.send( msg )
+            for s in web_sockets:
+                s.send_message( msg )
 
         # for e in events:
         #     msg = 'Event'+'\n'
@@ -108,6 +124,17 @@ class Pupil_Server(Plugin):
             d['menu_conf'] = self.menu_conf
         return d
 
+    def set_websocket_server(self):
+        define("port", default = 8080, help = "run on the given port", type = int)
+
+        app = tornado.web.Application([
+            (r"/", IndexHandler),
+            (r"/ws", SendWebSocket),
+        ])
+        parse_command_line()
+        app.listen(options.port)
+        t = threading.Thread(target=tornado.ioloop.IOLoop.instance().start)
+        t.start()
 
     def cleanup(self):
         """gets called when the plugin get terminated.
@@ -115,4 +142,40 @@ class Pupil_Server(Plugin):
         """
         self.deinit_gui()
         self.context.destroy()
+        tornado.ioloop.IOLoop.instance().stop()
+
+class IndexHandler(tornado.web.RequestHandler):
+    @tornado.web.asynchronous
+    def get(self):
+        self.render("index.html")
+
+class SendWebSocket(tornado.websocket.WebSocketHandler):
+    #on_message -> receive data
+    #write_message -> send data
+
+    #index.htmlでコネクションが確保されると呼び出される
+    def open(self):
+        # self.i = 0
+        # self.callback = PeriodicCallback(self._send_message, 400) #遅延用コールバック
+        # self.callback.start()
+        print "WebSocket opened"
+        web_sockets.append(self)
+
+    #クライアントからメッセージが送られてくると呼び出される
+    def on_message(self, message):
+        print message
+
+    def send_message(self, message):
+        self.write_message(message)
+
+    #コールバックスタートで呼び出しが始まる
+    # def _send_message(self):
+    #     self.i += 1
+    #     self.write_message(str(self.i))
+
+    #ページが閉じ、コネクションが切れる事で呼び出し
+    def on_close(self):
+        # self.callback.stop()
+        web_sockets.remove(self)
+        print "WebSocket closed"
 
