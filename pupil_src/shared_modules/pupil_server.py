@@ -16,15 +16,13 @@ from pyglui import ui
 import zmq
 
 # for web socket
-import time
 import tornado.ioloop
 import tornado.web
 import tornado.websocket
-from tornado.ioloop import PeriodicCallback
-import threading
-
+# from tornado.ioloop import PeriodicCallback
 from tornado.options import define, options, parse_command_line
 
+import threading
 
 
 import logging
@@ -92,8 +90,8 @@ class Pupil_Server(Plugin):
                 if key not in self.exclude_list:
                     msg +=key+":"+str(value)+'\n'
             self.socket.send( msg )
-            for s in web_sockets:
-                s.send_message( msg )
+            # for s in web_sockets:
+            #     s.send_message( msg )
 
         for g in events.get('gaze',[]):
             msg = "Gaze\n"
@@ -101,6 +99,15 @@ class Pupil_Server(Plugin):
                 if key not in self.exclude_list:
                     msg +=key+":"+str(value)+'\n'
             self.socket.send( msg )
+
+            # send gaze pos to browser
+            pos = g['norm_pos']
+            pos_in_display_key = 'realtime gaze on display'
+            if pos_in_display_key in g:
+                pos_in_display = g[pos_in_display_key]
+            else:
+                pos_in_display = (0, 0)
+            msg = '{"pos": {"x": %f, "y": %f}, "pos_in_display": {"x": %f, "y": %f}}' % (pos[0], pos[1], pos_in_display[0], pos_in_display[1])
             for s in web_sockets:
                 s.send_message( msg )
 
