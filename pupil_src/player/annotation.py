@@ -33,6 +33,8 @@ class Annotation():
             if e.flg == "begin": self.data.pop(i)
             i -= 1
 
+        self.save()
+
     def endAction(self, frameIndex):
         i = self.seek(frameIndex)
 
@@ -54,12 +56,16 @@ class Annotation():
             if e.flg == "end": self.data.pop(i)
             i -= 1
 
+        self.save()
+
     def removeAction(self, frameIndex):
         i = self.seek(frameIndex)
 
         if self.data[i].flg == "begin":
             self.data.pop(i)
             self.data.pop(i+1)
+
+        self.save()
 
     def seek(self, frameIndex):
         i = 0
@@ -73,6 +79,10 @@ class Annotation():
 
     def dataFromJson(self, json):
         return [Element(e[0], e[1]) for e in json]
+
+    def save(self):
+        with open(self.filepath, "w") as f:
+            json.dump(self.jsonFromData(self.data), f)
 
 
 class Element():
