@@ -8,7 +8,7 @@ class Annotation():
         self.filepath = os.path.join(rec_dir, "annotation.json")
         try:
             with open(self.filepath) as f:
-                self.data = json.load(f)
+                self.data = self.dataFromJson(json.load(f))
         except:
             pass
 
