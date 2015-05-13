@@ -8,6 +8,11 @@
 ----------------------------------------------------------------------------------~(*)
 '''
 
+'''
+    Annottation
+'''
+from annotation import Annotation
+
 import sys, os,platform
 from time import time, sleep
 from copy import deepcopy
@@ -188,6 +193,12 @@ def main():
     if not is_pupil_rec_dir(rec_dir):
         logger.error("You did not supply a dir with the required files inside.")
         return
+
+    """
+    create annotation
+    """
+
+    annotation = Annotation(rec_dir)
 
     # load session persistent settings
     session_settings = Persistent_Dict(os.path.join(user_dir,"user_settings"))
