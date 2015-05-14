@@ -146,6 +146,12 @@ def main():
             p.on_window_resize(window,w,h)
 
     def on_key(window, key, scancode, action, mods):
+        if action == GLFW_PRESS:
+            if key == 66: # b
+                annotation.beginAction(cap.get_frame_index())
+            elif key == 69: # e
+                annotation.endAction(cap.get_frame_index())
+        print annotation.json()
         g_pool.gui.update_key(key,scancode,action,mods)
 
     def on_char(window,char):

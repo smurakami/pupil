@@ -15,7 +15,7 @@ class Annotation():
 
     def save(self):
         with open(self.filepath, "w") as f:
-            json.dump(jsonFromData(self.data), f)
+            json.dump(self.json(), f)
 
     def beginAction(self, frameIndex):
         i = self.seek(frameIndex)
@@ -83,6 +83,9 @@ class Annotation():
         i = self.seek(frameIndex)
         if i == 0: return False
         return self.data[i-1].flg == "begin"
+
+    def json(self):
+        return jsonFromData(self.data)
 
 
 def jsonFromData(data):
