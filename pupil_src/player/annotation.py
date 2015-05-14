@@ -6,11 +6,16 @@ class Annotation():
     def __init__(self, rec_dir):
         self.data = []
         self.filepath = os.path.join(rec_dir, "annotation.json")
-        try:
+        self.load()
+
+    def load(self):
+        if os.path.exists(self.filepath):
             with open(self.filepath) as f:
-                self.data = self.dataFromJson(json.load(f))
-        except:
-            pass
+                self.data = dataFromJson(json.load(f))
+
+    def save(self):
+        with open(self.filepath, "w") as f:
+            json.dump(jsonFromData(self.data), f)
 
     def beginAction(self, frameIndex):
         i = self.seek(frameIndex)
@@ -74,15 +79,17 @@ class Annotation():
             i += 1
         return i
 
-    def jsonFromData(self, data):
-        return [[e.flg, e.frameIndex] for e in data]
+    def isAction(self, frameIndex):
+        i = self.seek(frameIndex)
+        if i == 0: return False
+        return self.data[i-1].flg == "begin"
 
-    def dataFromJson(self, json):
-        return [Element(e[0], e[1]) for e in json]
 
-    def save(self):
-        with open(self.filepath, "w") as f:
-            json.dump(self.jsonFromData(self.data), f)
+def jsonFromData(data):
+    return [[e.flg, e.frameIndex] for e in data]
+
+def dataFromJson(json):
+    return [Element(e[0], e[1]) for e in json]
 
 
 class Element():
@@ -93,17 +100,13 @@ class Element():
 
 if __name__ == "__main__":
     a = Annotation("/tmp")
-    print a.jsonFromData(a.data)
     a.beginAction(3)
-    print a.jsonFromData(a.data)
     a.endAction(5)
-    print a.jsonFromData(a.data)
     a.beginAction(2)
-    print a.jsonFromData(a.data)
     a.endAction(6)
-    print a.jsonFromData(a.data)
     a.beginAction(7)
-    print a.jsonFromData(a.data)
     a.endAction(8)
-    print a.jsonFromData(a.data)
+    print jsonFromData(a.data)
+    for i in range(10):
+        print i, a.isAction(i)
 
