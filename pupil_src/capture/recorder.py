@@ -214,7 +214,8 @@ class Recorder(Plugin):
             self.audio_writer = None
 
         self.video_path = os.path.join(self.rec_path, "world.mkv")
-        self.writer = cv2.VideoWriter(self.video_path, cv2.cv.CV_FOURCC(*'DIVX'), float(self.g_pool.capture.frame_rate), self.g_pool.capture.frame_size)
+        print self.video_path, cv2.cv.CV_FOURCC(*'DIVX'), float(self.g_pool.capture.frame_rate), self.g_pool.capture.frame_size
+        self.writer = cv2.VideoWriter(self.video_path, cv2.cv.CV_FOURCC(*'DIVX'), float(self.g_pool.capture.frame_rate), tuple(map(int,self.g_pool.capture.frame_size)))
         # positions path to eye process
         if self.record_eye:
             for tx in self.g_pool.eye_tx:
