@@ -1,0 +1,5 @@
+#!/bin/sh
+
+python pupil_src/player/main.py $1
+
+
