@@ -42,7 +42,6 @@ class Pupil_Server(Plugin):
         self.set_websocket_client()
         self.menu = None
         self.menu_conf = menu_conf
-        self.player_id = 0
 
         self.exclude_list = ['ellipse','pos_in_roi','major','minor','axes','angle','center']
 
@@ -105,14 +104,17 @@ class Pupil_Server(Plugin):
             pos = g['norm_pos']
             pos_in_display_key = 'realtime gaze on display'
             if pos_in_display_key in g:
+                in_display = 1
                 pos_in_display = g[pos_in_display_key]
             else:
-                pos_in_display = (0, 0)
-            msg = '{"msg": "pupil_pos", "pos": {"x": %f, "y": %f}, "pos_in_display": {"x": %f, "y": %f}, "player": %d}' % (pos[0], pos[1], pos_in_display[0], pos_in_display[1], self.player_id)
+                in_display = 0
+                pos_in_display = (-1, -1)
+            msg = '{"msg": "pupil_pos", "pos": {"x": %f, "y": %f}, "pos_in_display": {"x": %f, "y": %f}, "player": %d, "in_display": %d}' % (pos[0], pos[1], pos_in_display[0], pos_in_display[1], self.torado_client.player_id, in_display)
             for s in web_sockets:
                 s.send_message( msg )
 
             self.torado_client.write_message(msg)
+            print "player_id", self.torado_client.player_id
 
         # for e in events:
         #     msg = 'Event'+'\n'
@@ -208,6 +210,7 @@ class TornadoClient(object):
         self.client = None
         self.cnt = 0
         self.started_at = time.time()
+        self.player_id = 0
 
     def on_connect(self, client):
         self.client = client.result()
