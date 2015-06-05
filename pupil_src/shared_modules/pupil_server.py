@@ -8,7 +8,6 @@
  License details are in the file license.txt, distributed as part of this software.
 ----------------------------------------------------------------------------------~(*)
 '''
-
 from plugin import Plugin
 
 import numpy as np
@@ -39,9 +38,11 @@ class Pupil_Server(Plugin):
         self.socket = self.context.socket(zmq.PUB)
         self.address = ''
         self.set_server(address)
-        self.set_websocket_server()
+        # self.set_websocket_server()
+        self.set_websocket_client()
         self.menu = None
         self.menu_conf = menu_conf
+        self.player_id = 0
 
         self.exclude_list = ['ellipse','pos_in_roi','major','minor','axes','angle','center']
 
@@ -107,9 +108,11 @@ class Pupil_Server(Plugin):
                 pos_in_display = g[pos_in_display_key]
             else:
                 pos_in_display = (0, 0)
-            msg = '{"pos": {"x": %f, "y": %f}, "pos_in_display": {"x": %f, "y": %f}}' % (pos[0], pos[1], pos_in_display[0], pos_in_display[1])
+            msg = '{"msg": "pupil_pos", "pos": {"x": %f, "y": %f}, "pos_in_display": {"x": %f, "y": %f}, "player": %d}' % (pos[0], pos[1], pos_in_display[0], pos_in_display[1], self.player_id)
             for s in web_sockets:
                 s.send_message( msg )
+
+            self.torado_client.write_message(msg)
 
         # for e in events:
         #     msg = 'Event'+'\n'
@@ -130,6 +133,12 @@ class Pupil_Server(Plugin):
         else:
             d['menu_conf'] = self.menu_conf
         return d
+
+    def set_websocket_client(self):
+        self.torado_client = TornadoClient("ws://192.168.10.11:8181")
+        parse_command_line()
+        t = threading.Thread(target=tornado.ioloop.IOLoop.instance().start)
+        t.start()
 
     def set_websocket_server(self):
         define("port", default = 8080, help = "run on the given port", type = int)
@@ -162,9 +171,9 @@ class SendWebSocket(tornado.websocket.WebSocketHandler):
 
     #index.htmlでコネクションが確保されると呼び出される
     def open(self):
-        # self.i = 0
-        # self.callback = PeriodicCallback(self._send_message, 400) #遅延用コールバック
-        # self.callback.start()
+        self.i = 0
+        self.callback = PeriodicCallback(self._send_message, 400) #遅延用コールバック
+        self.callback.start()
         print "WebSocket opened"
         web_sockets.append(self)
 
@@ -186,3 +195,55 @@ class SendWebSocket(tornado.websocket.WebSocketHandler):
         web_sockets.remove(self)
         print "WebSocket closed"
 
+from tornado import ioloop, websocket, web
+import time
+import wsaccel
+import json
+patched = 0
+
+class TornadoClient(object):
+    def __init__(self, url):
+        websocket.websocket_connect(url, callback=self.on_connect)
+        self.url = url
+        self.client = None
+        self.cnt = 0
+        self.started_at = time.time()
+
+    def on_connect(self, client):
+        self.client = client.result()
+        self.client.on_message = self.on_received
+        self.client.write_message('{"msg": "new_player"}')
+
+    def write_message(self, msg):
+        if self.client:
+            self.client.write_message(msg)
+
+    def on_received(self, message):
+        if not message:
+            return
+        #print("client received:", message[:20])
+        self.cnt += 1
+
+        print message
+
+        try:
+            msg = json.loads(message)
+            if msg['msg'] == 'new_player':
+                print "new_player!"
+                print msg['player']
+                self.player_id = msg['player']
+
+        except:
+            pass
+
+        if self.cnt < 1000:
+            # self.client.write_message('{"msg": "hello"}')
+            pass
+        else:
+            print(self.cnt, time.time() - self.started_at)
+            self.client.protocol.close()
+            global patched
+            if not patched:
+                patched += 1
+                wsaccel.patch_tornado()
+                TornadoClient(self.url)
