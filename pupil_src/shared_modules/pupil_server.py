@@ -137,7 +137,7 @@ class Pupil_Server(Plugin):
         return d
 
     def set_websocket_client(self):
-        self.torado_client = TornadoClient("ws://192.168.10.11:8181")
+        self.torado_client = TornadoClient("ws://192.168.10.18:8181")
         parse_command_line()
         t = threading.Thread(target=tornado.ioloop.IOLoop.instance().start)
         t.start()
